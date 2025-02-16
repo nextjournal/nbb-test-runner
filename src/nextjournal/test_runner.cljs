@@ -87,7 +87,9 @@
          (concat (get-files dir)))))
 
 (defn glob-cljs [dir]
-  (filter #(str/ends-with? % ".cljs") (get-files-recursively dir)))
+  (filter #(or (str/ends-with? % ".cljs")
+               (str/ends-with? % ".cljc")) 
+          (get-files-recursively dir)))
 
 (defn find-nses [dirs]
   (into (sorted-set)
