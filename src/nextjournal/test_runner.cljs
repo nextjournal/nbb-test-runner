@@ -99,26 +99,24 @@
 
 #_(find-nses #{"test" "src"})
 
+(def nses-tested (atom []))
+
 (defn test
   [options]
   (let [dirs (or (:dir options)
                  #{"test"})
         nses (find-nses dirs)
         nses (filter (ns-filter options) nses)]
+    (reset! nses-tested nses)
     (println (str "\nRunning tests in " dirs))
     (p/let [_ (apply require nses)]
       (try
         (filter-vars! nses (var-filter options))
-        (apply test/run-tests (filter contains-tests? nses))
-        (finally
-          (restore-vars! nses))))))
-
-
+        (apply test/run-tests (filter contains-tests? nses))))))
 
 (defn- parse-kw
   [^String s]
   (if (.startsWith s ":") (read-string s) (keyword s)))
-
 
 (defn- accumulate [m k v]
   (update-in m [k] (fnil conj #{}) v))
@@ -153,6 +151,8 @@
   (println "If neither -n nor -r is supplied, use -r #\".*-test$\" (ns'es ending in '-test')"))
 
 (defmethod test/report [:cljs.test/default :end-run-tests] [m]
+  ;; Only restore after all tests have finished including async ones
+  (restore-vars! @nses-tested)
   (when-not (test/successful? m)
     (set! (.-exitCode js/process) 1)))
 
